@@ -5,7 +5,14 @@
 // Date:   12/29/2017
 // ----------------------------------------------------------------------------
 
-public class GUITable
+using UnityEngine;
+
+namespace Assets.Code
 {
-    
+    public class Array2DTest : MonoBehaviour
+    {
+        //public ObjectArray2D Obects;
+
+        public StringListArray2D Strings;
+    }
 }
