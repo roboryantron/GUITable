@@ -11,7 +11,9 @@ namespace Assets.Code
 {
     public class Array2DTest : MonoBehaviour
     {
-        //public ObjectArray2D Obects;
+        public IntArray2D Ints;
+        
+        public ObjectArray2D Obects;
 
         public StringListArray2D Strings;
     }

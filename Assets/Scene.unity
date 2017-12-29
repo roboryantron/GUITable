@@ -153,6 +153,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 829c99bb44e84d699740a5c6fe24a92d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  Ints:
+    Width: 3
+    List: 0000000003000000000000000000000000000000
   Obects:
     Width: 3
     List:
@@ -161,9 +164,16 @@ MonoBehaviour:
     - {fileID: 0}
     - {fileID: 0}
     - {fileID: 0}
-    - {fileID: 0}
-    - {fileID: 0}
-    - {fileID: 0}
+  Strings:
+    Width: 3
+    List:
+    - Strings:
+      - 
+      - 
+    - Strings: []
+    - Strings: []
+    - Strings: []
+    - Strings: []
 --- !u!1 &1414054352
 GameObject:
   m_ObjectHideFlags: 0

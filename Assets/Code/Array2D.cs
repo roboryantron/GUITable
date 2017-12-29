@@ -77,6 +77,10 @@ namespace Assets.Code
     [Serializable]
     public class ObjectArray2D : Array2D<Object>
     {}
+    
+    [Serializable]
+    public class IntArray2D : Array2D<int>
+    {}
 
     [Serializable]
     public class StringSet

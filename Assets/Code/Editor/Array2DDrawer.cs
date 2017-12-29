@@ -5,9 +5,8 @@
 // Date:   12/29/2017
 // ----------------------------------------------------------------------------
 
-using Microsoft.Win32;
+using System.Collections.Generic;
 using UnityEditor;
-using UnityEditor.Experimental.Build.AssetBundle;
 using UnityEngine;
 
 namespace Assets.Code.Editor
@@ -18,25 +17,47 @@ namespace Assets.Code.Editor
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
             //return base.GetPropertyHeight(property, label);
+            
+            
+                
+            int control = GUIUtility.GetControlID(FocusType.Keyboard);
 
-            return 500;
+            // TODO: this state is not resolving, may need to run layout code to solve.. but I do not have width prefereces
+            TableDrawer.TableState state = (TableDrawer.TableState)GUIUtility.GetStateObject(typeof(TableDrawer.TableState), control);
+            
+            
+            //if (!stateCache.ContainsKey(control))
+//                stateCache.Add(control, new TableDrawer.TableState());
+            
+            return state.GetHeight();
         }
 
         private static TableDrawer.TableState state;
+
+        // use GUIUtility.GetStateObject instead
+        private static Dictionary<int, TableDrawer.TableState> stateCache = new Dictionary<int, TableDrawer.TableState>();
         
         public override void OnGUI(Rect position, SerializedProperty property, GUIContent label)
         {
-            Rect row = new Rect(position);
-
             SerializedProperty width = property.FindPropertyRelative("Width");
             SerializedProperty list = property.FindPropertyRelative("List");
+            
+            int control = GUIUtility.GetControlID(FocusType.Keyboard);
+            TableDrawer.TableState state = (TableDrawer.TableState)GUIUtility.GetStateObject(typeof(TableDrawer.TableState), control);
+            //Debug.Log(control);
+            
+            //if (!stateCache.ContainsKey(control))
+                //stateCache.Add(control, new TableDrawer.TableState());
+            
+            // TODO: make a static cache of states like most of Unity's OnGUI does, use a hash of the control id.
+            //stateCache[control] = TableDrawer.Draw(stateCache[control], position, width.intValue, list);
             state = TableDrawer.Draw(state, position, width.intValue, list);
         }
     }
 
     public static class TableDrawer
     {
-        public struct TableState
+        public class TableState
         {
             public bool Initialized;
             public float[] ColumnWidths;
@@ -51,15 +72,47 @@ namespace Assets.Code.Editor
                     result += ColumnWidths[i];
                 return result;
             }
+
+            public float GetHeight()
+            {
+                float result = 100;//MIN_HEIGHT header
+                if (RowHeights == null)
+                    return result;
+                for (int i = 0; i < RowHeights.Length; i++)
+                    result += RowHeights[i];
+                return result;
+            }
         }
 
         public const float MIN_WIDTH = 100;
-        public const float MIN_HEIGHT = 16;
+        public const float MIN_HEIGHT = 20;
 
         public static int GetRowCount(int totalLength, int width)
         {
             return (totalLength / width) + 1;
         }
+
+        private static int GetChildCount(SerializedProperty prop)
+        {
+            int rootDepth = prop.depth;
+            SerializedProperty copy = prop.Copy();
+            
+            copy.NextVisible(true);
+            if (copy.depth <= rootDepth)
+                return 0;
+            int count = 1;
+            while (copy.NextVisible(false))
+            {
+                if (copy.depth == rootDepth + 1)
+                    count++;
+                else
+                    break;
+            }
+
+            return count;
+        }
+        
+        public static RectOffset Padding = new RectOffset(2, 2, 2, 2);
         
         public static TableState Draw(TableState state, Rect position, int width, SerializedProperty list)
         {
@@ -122,7 +175,11 @@ namespace Assets.Code.Editor
                     if (index < list.arraySize)
                     {
                         SerializedProperty element = list.GetArrayElementAtIndex(index);
-                        cellHeights[c] = EditorGUI.GetPropertyHeight(element);
+                        // If the property is a container for a single object, jump into that object
+                        int childCount = GetChildCount(element);
+                        if (childCount == 1)
+                            element.NextVisible(true);
+                        cellHeights[c] = EditorGUI.GetPropertyHeight(element) + Padding.top + Padding.bottom;
                     }
                 }
                 state.RowHeights[r] = Mathf.Max(MIN_HEIGHT, Mathf.Max(cellHeights));
@@ -141,18 +198,27 @@ namespace Assets.Code.Editor
                     {
                         EditorGUIUtility.labelWidth = Mathf.Max(60, cellRect.width * 0.6f);
                         SerializedProperty element = list.GetArrayElementAtIndex(index);
-                            
+                        // If the property is a container for a single object, jump into that object
+                        int childCount = GetChildCount(element);
+                        if (childCount == 1)
+                            element.NextVisible(true);
+                        
+                        //GUI.Box(cellRect, "" + childCount);
                         GUI.Box(cellRect, "");
                         if (r%2==0)
                             GUI.Box(cellRect, "");
+
+                        cellRect = Padding.Remove(cellRect);
+                        GUIContent label = GUIContent.none;
                         
-                        // If it is a foldout, indent it
-                        if (element.hasChildren)
-                            cellRect.xMin += 20;
-                        
+                        if (element.hasVisibleChildren)
+                        {
+                            cellRect.xMin += 10;
+                            label = new GUIContent(element.displayName);
+                        }
                         EditorGUI.PropertyField(cellRect,
                             element,
-                            GUIContent.none, true);
+                            label, true);
                         EditorGUIUtility.labelWidth = 0.0f;
                     }
                     else
