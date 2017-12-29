@@ -116,7 +116,7 @@ namespace Assets.Code.Editor
 
         public Rect Draw(Rect rect)
         {
-            if (Event.current.type == EventType.mouseUp)
+            if (Event.current.type == EventType.MouseUp)
                 resizing = -1;
 
             float x = 0.0f;
@@ -128,7 +128,7 @@ namespace Assets.Code.Editor
 
                 Rect dragArea = new Rect(x - 2, 0, 4, rect.height);
                 EditorGUIUtility.AddCursorRect(dragArea, MouseCursor.ResizeHorizontal);
-                if (Event.current.type == EventType.mouseDown && dragArea.Contains(Event.current.mousePosition))
+                if (Event.current.type == EventType.MouseDown && dragArea.Contains(Event.current.mousePosition))
                 {
                     resizing = c;
                 }
