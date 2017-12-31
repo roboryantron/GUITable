@@ -154,8 +154,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   Ints:
+    Width: 5
+    List: 0100000002000000030000000400000005000000060000000700000008000000090000000a0000000b0000000c0000000d0000000e0000000f000000
+  Strings:
     Width: 3
-    List: 0000000000000000000000000000000000000000
+    List:
+    - Strings: []
+    - Strings:
+      - gfjsdhlkjhlkjhfdg lkjshdf kjasdfh
+    - Strings:
+      - gfjsdhlkjhlkjhfdg lkjshdf kjasdfh
+      - gfjsdhlkjhlkjhfdg lkjshdf kjasdfh
+    - Strings:
+      - gfjsdhlkjhlkjhfdg lkjshdf kjasdfh
+      - gfjsdhlkjhlkjhfdg lkjshdf kjasdfh
+      - gfjsdhlkjhlkjhfdg lkjshdf kjasdfh
+      - gfjsdhlkjhlkjhfdg lkjshdf kjasdfh
+      - gfjsdhlkjhlkjhfdg lkjshdf kjasdfh
   Obects:
     Width: 3
     List:
@@ -164,16 +179,6 @@ MonoBehaviour:
     - {fileID: 0}
     - {fileID: 0}
     - {fileID: 0}
-  Strings:
-    Width: 3
-    List:
-    - Strings:
-      - 
-      - 
-    - Strings: []
-    - Strings: []
-    - Strings: []
-    - Strings: []
 --- !u!1 &1414054352
 GameObject:
   m_ObjectHideFlags: 0
