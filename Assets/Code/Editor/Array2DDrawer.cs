@@ -5,6 +5,7 @@
 // Date:   12/29/2017
 // ----------------------------------------------------------------------------
 
+using System;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
@@ -16,19 +17,11 @@ namespace Assets.Code.Editor
     {
         public override float GetPropertyHeight(SerializedProperty property, GUIContent label)
         {
-            //return base.GetPropertyHeight(property, label);
-            
-            
-                
-            int control = GUIUtility.GetControlID(FocusType.Keyboard);
-
-            // TODO: this state is not resolving, may need to run layout code to solve.. but I do not have width prefereces
+            // GetControlID is trash when used in GetProperytyHeight
+            int control = (property.serializedObject.targetObject.name + "_" + property.propertyPath).GetHashCode();
+         
             TableDrawer.TableState state = (TableDrawer.TableState)GUIUtility.GetStateObject(typeof(TableDrawer.TableState), control);
-            
-            
-            //if (!stateCache.ContainsKey(control))
-//                stateCache.Add(control, new TableDrawer.TableState());
-            
+         
             return state.GetHeight();
         }
 
@@ -42,7 +35,7 @@ namespace Assets.Code.Editor
             SerializedProperty width = property.FindPropertyRelative("Width");
             SerializedProperty list = property.FindPropertyRelative("List");
             
-            int control = GUIUtility.GetControlID(FocusType.Keyboard);
+            int control = (property.serializedObject.targetObject.name + "_" + property.propertyPath).GetHashCode();
             TableDrawer.TableState state = (TableDrawer.TableState)GUIUtility.GetStateObject(typeof(TableDrawer.TableState), control);
             //Debug.Log(control);
             
@@ -51,12 +44,18 @@ namespace Assets.Code.Editor
             
             // TODO: make a static cache of states like most of Unity's OnGUI does, use a hash of the control id.
             //stateCache[control] = TableDrawer.Draw(stateCache[control], position, width.intValue, list);
-            state = TableDrawer.Draw(state, position, width.intValue, list);
+            TableDrawer.Draw(state, position, width.intValue, list);
         }
     }
 
     public static class TableDrawer
     {
+        public static readonly RectOffset Padding = new RectOffset(2, 2, 2, 2);
+        
+        public const float MIN_WIDTH = 100;
+        public const float MIN_HEIGHT = 20;
+        public const float BOTTOM_PADDING = 10;
+        
         public class TableState
         {
             public bool Initialized;
@@ -75,17 +74,16 @@ namespace Assets.Code.Editor
 
             public float GetHeight()
             {
-                float result = 100;//MIN_HEIGHT header
+                float result = MIN_HEIGHT;// header
                 if (RowHeights == null)
                     return result;
                 for (int i = 0; i < RowHeights.Length; i++)
                     result += RowHeights[i];
-                return result;
+                return result + BOTTOM_PADDING;
             }
         }
 
-        public const float MIN_WIDTH = 100;
-        public const float MIN_HEIGHT = 20;
+        
 
         public static int GetRowCount(int totalLength, int width)
         {
@@ -97,7 +95,8 @@ namespace Assets.Code.Editor
             int rootDepth = prop.depth;
             SerializedProperty copy = prop.Copy();
             
-            copy.NextVisible(true);
+            bool more = copy.NextVisible(true);
+            if (!more) return 0;
             if (copy.depth <= rootDepth)
                 return 0;
             int count = 1;
@@ -112,10 +111,12 @@ namespace Assets.Code.Editor
             return count;
         }
         
-        public static RectOffset Padding = new RectOffset(2, 2, 2, 2);
-        
         public static TableState Draw(TableState state, Rect position, int width, SerializedProperty list)
         {
+            int listSize = list.arraySize;
+            int rowCount = GetRowCount(listSize, width);
+            float height = state.GetHeight();
+            
             if (!state.Initialized || width != state.ColumnWidths.Length)
             {
                 state.Initialized = true;
@@ -123,17 +124,33 @@ namespace Assets.Code.Editor
                 for (int i = 0; i < state.ColumnWidths.Length; i++)
                     state.ColumnWidths[i] = MIN_WIDTH; // TODO: defaults
                 
-                state.RowHeights = new float[GetRowCount(list.arraySize, width)];
+                state.RowHeights = new float[rowCount];
                 for (int i = 0; i < state.RowHeights.Length; i++)
                     state.RowHeights[i] = MIN_HEIGHT; 
                 state.Resizing = -1;
                 state.Rect = new Rect(0, 0, 500, state.GetWidth()); // TODO: get height
             }
 
-            state.Rect.min = position.min;
+            while (state.RowHeights.Length < rowCount)
+                ArrayUtility.Add(ref state.RowHeights, MIN_HEIGHT);
             
-            if (Event.current.type == EventType.MouseUp)
+            while (state.RowHeights.Length > rowCount)
+                ArrayUtility.RemoveAt(ref state.RowHeights, state.RowHeights.Length);
+            
+            while (state.ColumnWidths.Length < width)
+                ArrayUtility.Add(ref state.ColumnWidths, MIN_WIDTH);
+            
+            while (state.ColumnWidths.Length > width)
+                ArrayUtility.RemoveAt(ref state.ColumnWidths, state.ColumnWidths.Length);
+
+            state.Rect.min = position.min;
+
+            if (Event.current.type == EventType.MouseUp &&
+                state.Resizing != -1)
+            {
                 state.Resizing = -1;
+                EditorUtility.SetDirty(list.serializedObject.targetObject);
+            }
 
             float x = state.Rect.x;
             float y = state.Rect.y;// = 16.0f;//HeaderHeight;
@@ -146,7 +163,10 @@ namespace Assets.Code.Editor
                 GUI.Box(header, c.ToString());
                 x += header.width;
 
-                Rect dragArea = new Rect(x - 2, y, 4, state.Rect.height);
+                // Make the active resize area wide to prevent flickering as the cursor jumps in and out of the area.
+                float dragAreaWidth = state.Resizing == c ? 50 : 6;
+                Rect dragArea = new Rect(x - dragAreaWidth/2, y, dragAreaWidth, position.height - BOTTOM_PADDING);
+                //GUI.Box(dragArea, "");
                 EditorGUIUtility.AddCursorRect(dragArea, MouseCursor.ResizeHorizontal);
                 if (Event.current.type == EventType.MouseDown && dragArea.Contains(Event.current.mousePosition))
                 {
@@ -162,7 +182,7 @@ namespace Assets.Code.Editor
             }
             y += header.height;
 
-            int rowCount = GetRowCount(list.arraySize, width);
+            
 
             // Calculate row heights
             for (int r = 0; r < rowCount; r++)
@@ -172,7 +192,7 @@ namespace Assets.Code.Editor
                 {
                     int index = Array2D.GetIndex(c, r, width);
 
-                    if (index < list.arraySize)
+                    if (index < listSize)
                     {
                         SerializedProperty element = list.GetArrayElementAtIndex(index);
                         // If the property is a container for a single object, jump into that object
@@ -191,12 +211,13 @@ namespace Assets.Code.Editor
                 for (int c = 0; c < width; c++)
                 {
                     Rect cellRect = new Rect(x, y, state.ColumnWidths[c], state.RowHeights[r]);
+                    Rect contentRect = Padding.Remove(cellRect);
 
                     int index = Array2D.GetIndex(c, r, width);
 
-                    if (index < list.arraySize)
+                    if (index < listSize)
                     {
-                        EditorGUIUtility.labelWidth = Mathf.Max(60, cellRect.width * 0.6f);
+                        EditorGUIUtility.labelWidth = Mathf.Min(85, Mathf.Max(40, cellRect.width * 0.5f));
                         SerializedProperty element = list.GetArrayElementAtIndex(index);
                         // If the property is a container for a single object, jump into that object
                         int childCount = GetChildCount(element);
@@ -207,16 +228,15 @@ namespace Assets.Code.Editor
                         GUI.Box(cellRect, "");
                         if (r%2==0)
                             GUI.Box(cellRect, "");
-
-                        cellRect = Padding.Remove(cellRect);
+ 
                         GUIContent label = GUIContent.none;
                         
                         if (element.hasVisibleChildren)
                         {
-                            cellRect.xMin += 10;
+                            contentRect.xMin += 10;
                             label = new GUIContent(element.displayName);
                         }
-                        EditorGUI.PropertyField(cellRect,
+                        EditorGUI.PropertyField(contentRect,
                             element,
                             label, true);
                         EditorGUIUtility.labelWidth = 0.0f;
@@ -226,20 +246,28 @@ namespace Assets.Code.Editor
                         GUI.Box(cellRect, "");
                         if (r%2==0)
                             GUI.Box(cellRect, "");
+
+                        if (listSize == index)
+                        {
+                            contentRect.height = MIN_HEIGHT - 6;
+                            contentRect.width = MIN_HEIGHT - 3;
+                            contentRect.center = cellRect.center;
+                            if (GUI.Button(contentRect, "+", EditorStyles.miniButton))
+                            {
+                                list.InsertArrayElementAtIndex(listSize);
+                                EditorUtility.SetDirty(list.serializedObject.targetObject);
+                            }
+                        }
                     }
                     x += state.ColumnWidths[c];
                 }
                 y += state.RowHeights[r];
             }
 
-            /*
-            Rect addRect = new Rect(0, y, CellWidth, MIN_HEIGHT);
-            if (GUI.Button(addRect, "+"))
+            if (Math.Abs(state.GetHeight() - height) > 0.1f)
             {
-                //AddCallback();
+                EditorUtility.SetDirty(list.serializedObject.targetObject);
             }
-            */
-            y += MIN_HEIGHT;
 
             return state;
         }

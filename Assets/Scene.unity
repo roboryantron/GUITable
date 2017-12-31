@@ -155,7 +155,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Ints:
     Width: 3
-    List: 0000000003000000000000000000000000000000
+    List: 0000000000000000000000000000000000000000
   Obects:
     Width: 3
     List:

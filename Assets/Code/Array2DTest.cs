@@ -13,8 +13,8 @@ namespace Assets.Code
     {
         public IntArray2D Ints;
         
-        public ObjectArray2D Obects;
-
         public StringListArray2D Strings;
+        
+        public ObjectArray2D Obects;
     }
 }
