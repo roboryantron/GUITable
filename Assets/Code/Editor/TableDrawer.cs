@@ -265,7 +265,7 @@ namespace Assets.Code.Editor
             if (Math.Abs(state.GetHeight(list) - height) > 0.1f)
             {
                 EditorUtility.SetDirty(list.serializedObject.targetObject);
-                //EditorApplication.delayCall += () => EditorUtility.SetDirty(list.serializedObject.targetObject);
+                EditorApplication.delayCall += () => EditorApplication.delayCall += () => UnityEditorInternal.InternalEditorUtility.RepaintAllViews();
             }
         }
     }

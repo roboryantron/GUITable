@@ -14,7 +14,8 @@ namespace Assets.Code
         public IntArray2D Ints;
         
         public StringListArray2D Strings;
-        
+
+        public int x = 5;
         public ObjectArray2D Obects;
     }
 }
